@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cómo funciona la Plataforma de Modelado Predictivo E1–E4</title>
+<style>
+  :root{
+    --bg:#0A0A0A;
+    --bg-panel:#141414;
+    --bg-panel-2:#1b1b1b;
+    --bg-card:#161616;
+    --text:#EDEDED;
+    --text-dim:#9c9c9c;
+    --text-dimmer:#6f6f6f;
+    --accent:#FFD400;
+    --accent-soft:rgba(255,212,0,0.12);
+    --accent-soft-2:rgba(255,212,0,0.06);
+    --border:rgba(255,255,255,0.10);
+    --border-accent:rgba(255,212,0,0.55);
+    --good:#7CD98A;
+    --bad:#e8735c;
+    --radius:8px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --maxw:980px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  ::selection{background:var(--accent); color:#111;}
+  a{color:var(--accent);}
+  h1,h2,h3,h4{font-weight:700; letter-spacing:-0.01em; margin:0 0 .5em;}
+  h1{font-size:clamp(1.6rem,4vw,2.2rem);}
+  h2{font-size:clamp(1.3rem,3vw,1.7rem); color:var(--accent);}
+  h3{font-size:1.05rem;}
+  p{margin:0 0 1em; color:var(--text);}
+  .dim{color:var(--text-dim);}
+  .mono{font-family:var(--mono);}
+  code, .num{font-family:var(--mono); color:var(--accent);}
+
+  /* ---------- layout ---------- */
+  header.topbar{
+    position:sticky; top:0; z-index:50; background:rgba(10,10,10,0.92);
+    backdrop-filter:blur(6px); border-bottom:1px solid var(--border);
+  }
+  .topbar-inner{
+    max-width:var(--maxw); margin:0 auto; padding:.85rem 1.25rem;
+    display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:center; gap:.5rem; font-weight:700; white-space:nowrap;}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent); box-shadow:0 0 8px var(--accent);}
+  nav.main-nav{display:flex; gap:.25rem; flex-wrap:wrap; margin-left:auto;}
+  nav.main-nav button{
+    background:transparent; border:1px solid transparent; color:var(--text-dim);
+    font-family:var(--sans); font-size:.85rem; padding:.5rem .8rem; border-radius:6px;
+    cursor:pointer; transition:color .18s ease, border-color .18s ease, background .18s ease;
+    white-space:nowrap;
+  }
+  nav.main-nav button:hover{color:var(--text); border-color:var(--border);}
+  nav.main-nav button.active{color:var(--accent); border-color:var(--border-accent); background:var(--accent-soft-2);}
+
+  main{max-width:var(--maxw); margin:0 auto; padding:2.25rem 1.25rem 5rem;}
+  .page{display:none; animation:fadeUp .35s ease;}
+  .page.active{display:block;}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  .eyebrow{color:var(--accent); font-family:var(--mono); font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; margin-bottom:.4rem;}
+  .lead{font-size:1.05rem; color:var(--text); max-width:70ch;}
+
+  .card{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:1.25rem 1.4rem; margin:1rem 0;
+  }
+  .card.accent{border-color:var(--border-accent); box-shadow:inset 0 0 0 1px rgba(255,212,0,0.04);}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:1rem;}
+  .grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:.9rem;}
+  @media (max-width:760px){ .grid-2, .grid-4{grid-template-columns:1fr;} }
+
+  .theme-card{
+    border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.2rem;
+    background:var(--bg-card); transition:border-color .18s ease, transform .18s ease;
+  }
+  .theme-card:hover{border-color:var(--border-accent); transform:translateY(-2px);}
+  .theme-card .icon{font-size:1.5rem;}
+  .theme-card h3{color:var(--accent); margin-top:.3rem;}
+
+  ul.plain{margin:0 0 1em; padding-left:1.2em;}
+  ul.plain li{margin-bottom:.5em;}
+  ul.plain li::marker{color:var(--accent);}
+
+  .divider{height:1px; background:var(--border); margin:2rem 0;}
+
+  table{width:100%; border-collapse:collapse; font-size:.88rem;}
+  thead th{
+    text-align:left; color:var(--accent); font-family:var(--mono); font-weight:600;
+    font-size:.75rem; text-transform:uppercase; letter-spacing:.03em;
+    padding:.55rem .7rem; border-bottom:1px solid var(--border-accent);
+  }
+  tbody td{padding:.55rem .7rem; border-bottom:1px solid var(--border); font-family:var(--mono);}
+  tbody td:first-child, thead th:first-child{font-family:var(--sans);}
+  tbody tr:hover{background:var(--accent-soft-2);}
+  tbody tr.winner{background:var(--accent-soft); }
+  tbody tr.winner td:first-child{color:var(--accent); font-weight:600;}
+  .table-wrap{overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border);}
+  .table-wrap table{border:none;}
+  .table-wrap thead th, .table-wrap tbody td{border-left:none; border-right:none;}
+
+  .term{border-bottom:1px dotted var(--text-dim); cursor:help;}
+  .badge{
+    display:inline-block; font-family:var(--mono); font-size:.72rem; padding:.15rem .5rem;
+    border:1px solid var(--border-accent); border-radius:20px; color:var(--accent); margin-left:.4rem;
+  }
+
+  /* ---------- section 5: theme + stepper ---------- */
+  .tema-selector{display:flex; gap:.5rem; flex-wrap:wrap; margin:1.2rem 0 1.6rem;}
+  .tema-btn{
+    flex:1 1 160px; background:var(--bg-card); border:1px solid var(--border); color:var(--text-dim);
+    border-radius:var(--radius); padding:.8rem .9rem; text-align:left; cursor:pointer;
+    font-family:var(--sans); transition:all .18s ease;
+  }
+  .tema-btn:hover{border-color:var(--border-accent); color:var(--text);}
+  .tema-btn.active{border-color:var(--accent); color:var(--accent); background:var(--accent-soft-2);}
+  .tema-btn .t-icon{font-size:1.3rem; display:block; margin-bottom:.2rem;}
+  .tema-btn .t-name{font-weight:600; font-size:.85rem;}
+
+  .stepper{display:flex; align-items:center; gap:.35rem; margin:1.4rem 0; flex-wrap:wrap;}
+  .step-dot{
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-family:var(--mono);
+    font-size:.72rem; color:var(--text-dimmer); flex-shrink:0; transition:all .2s ease; cursor:pointer;
+  }
+  .step-dot.done{border-color:var(--accent); color:var(--accent);}
+  .step-dot.current{border-color:var(--accent); background:var(--accent); color:#111; font-weight:700;}
+  .step-line{flex:1; height:1px; background:var(--border); min-width:10px;}
+  .step-line.done{background:var(--accent-soft);}
+
+  #step-content{min-height:280px;}
+  .step-content-inner{animation:fadeUp .3s ease;}
+
+  .step-nav{
+    display:flex; align-items:center; justify-content:space-between; margin-top:1.6rem;
+    padding-top:1.2rem; border-top:1px solid var(--border); gap:1rem;
+  }
+  .step-nav .lbl{color:var(--text-dim); font-family:var(--mono); font-size:.8rem;}
+  .nav-btn{
+    background:transparent; border:1px solid var(--border); color:var(--text);
+    padding:.55rem 1rem; border-radius:6px; cursor:pointer; font-family:var(--sans);
+    transition:all .18s ease; font-size:.88rem;
+  }
+  .nav-btn:hover:not(:disabled){border-color:var(--accent); color:var(--accent);}
+  .nav-btn:disabled{opacity:.3; cursor:not-allowed;}
+  .nav-btn.primary{border-color:var(--accent); color:var(--accent);}
+
+  .metric-box{
+    border:1px solid var(--border); border-radius:var(--radius); padding:.9rem 1rem;
+    background:var(--bg-panel-2);
+  }
+  .metric-box .k{font-family:var(--mono); font-size:.72rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em;}
+  .metric-box .v{font-family:var(--mono); font-size:1.35rem; color:var(--accent); margin-top:.2rem;}
+  .metric-box .d{font-size:.8rem; color:var(--text-dim); margin-top:.35rem;}
+
+  .def-box{
+    border-left:2px solid var(--accent); padding:.5rem .9rem; margin:1rem 0;
+    background:var(--accent-soft-2); font-size:.9rem; color:var(--text-dim);
+  }
+  .def-box b{color:var(--text);}
+
+  /* sliders */
+  .control-row{
+    display:flex; align-items:center; gap:.9rem; margin-bottom:1rem; flex-wrap:wrap;
+  }
+  .control-row label{flex:0 0 220px; font-size:.85rem; color:var(--text-dim);}
+  .control-row input[type=range]{
+    flex:1; min-width:140px; -webkit-appearance:none; appearance:none; height:3px;
+    background:var(--border); border-radius:3px; outline:none;
+  }
+  .control-row input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:15px; height:15px; border-radius:50%;
+    background:var(--accent); cursor:pointer; box-shadow:0 0 6px rgba(255,212,0,.5);
+  }
+  .control-row input[type=range]::-moz-range-thumb{
+    width:15px; height:15px; border-radius:50%; background:var(--accent); border:none; cursor:pointer;
+  }
+  .control-row select{
+    background:var(--bg-panel-2); color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:.4rem .6rem; font-family:var(--sans); font-size:.85rem;
+  }
+  .control-row .val{font-family:var(--mono); color:var(--accent); min-width:70px; text-align:right;}
+  .live-badge{
+    font-family:var(--mono); font-size:.7rem; color:#111; background:var(--accent);
+    padding:.1rem .45rem; border-radius:3px; margin-left:.4rem; vertical-align:middle;
+  }
+
+  svg.chart{width:100%; height:auto; display:block;}
+  .chart-legend{display:flex; gap:1.2rem; flex-wrap:wrap; font-size:.78rem; color:var(--text-dim); margin-top:.6rem;}
+  .chart-legend .sw{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:.4rem; vertical-align:middle;}
+
+  .bar-row{display:flex; align-items:center; gap:.7rem; margin-bottom:.6rem;}
+  .bar-label{flex:0 0 190px; font-size:.82rem; color:var(--text-dim); text-align:right;}
+  .bar-track{flex:1; height:20px; background:var(--bg-panel-2); border-radius:3px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--accent); border-radius:3px; transition:width .4s ease;}
+  .bar-val{font-family:var(--mono); font-size:.78rem; color:var(--accent); flex:0 0 60px;}
+
+  footer{
+    max-width:var(--maxw); margin:0 auto; padding:2rem 1.25rem 3rem; color:var(--text-dimmer);
+    font-size:.78rem; border-top:1px solid var(--border);
+  }
+
+  @media (max-width:600px){
+    .control-row label{flex-basis:100%;}
+    nav.main-nav{width:100%; justify-content:flex-start; overflow-x:auto;}
+    .bar-label{flex-basis:120px; font-size:.72rem;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="dot"></span> Plataforma E1–E4</div>
+    <nav class="main-nav" id="mainNav">
+      <button data-page="1" class="active">1. Qué es</button>
+      <button data-page="2">2. Para qué sirve</button>
+      <button data-page="3">3. Qué resuelve</button>
+      <button data-page="4">4. Cuándo usarla</button>
+      <button data-page="5">5. Problema Modelo</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============================================================ -->
+  <!-- SECCIÓN 1 -->
+  <!-- ============================================================ -->
+  <section class="page active" id="page-1">
+    <div class="eyebrow">Sección 1</div>
+    <h1>Qué es la aplicación</h1>
+    <p class="lead">Es un tablero interactivo (una página web que corre en tu navegador) construido en Python
+      con la librería <b>Streamlit</b>. Tú le subes un archivo de datos —una tabla, como una hoja de Excel— y ella
+      entrena y compara automáticamente varias técnicas estadísticas y de aprendizaje automático
+      (<span class="term" title="Aprendizaje automático: programas que encuentran patrones en los datos por sí mismos, en vez de que alguien les diga la fórmula exacta.">machine learning</span>)
+      sobre esos datos, elige la que mejor funcionó, y te explica el resultado en español sencillo.</p>
+
+    <div class="card accent">
+      <h3>En una frase</h3>
+      <p style="margin-bottom:0">Subes una tabla de datos → la aplicación prueba varios modelos por ti →
+        te dice cuál es el mejor y qué significa, sin que tengas que programar ni saber estadística.</p>
+    </div>
+
+    <h3>¿Con qué está construida?</h3>
+    <ul class="plain">
+      <li><b>scikit-learn</b>: la librería que entrena los modelos de regresión (predecir un número) y
+        clasificación (predecir una categoría, como "riesgo alto/bajo").</li>
+      <li><b>statsmodels</b>: para el análisis de series de tiempo con la metodología
+        <span class="term" title="Un método clásico y muy usado en estadística (también llamado ARIMA) para pronosticar el futuro de una serie de datos ordenada en el tiempo, a partir de su propio comportamiento pasado.">Box-Jenkins (ARIMA)</span>.</li>
+      <li><b>XGBoost</b> y <b>pmdarima</b>: dos herramientas adicionales que, cuando están disponibles en el
+        computador donde corre la app, refuerzan la precisión de las predicciones y la búsqueda automática de
+        modelos. Si no están instaladas, la aplicación simplemente lo avisa y sigue funcionando con el resto de
+        las técnicas — nunca se rompe por esto.</li>
+    </ul>
+
+    <h3>¿Cómo se usa, en términos generales?</h3>
+    <p>Corre en el navegador —en tu propio computador o publicada en internet (por ejemplo, en Streamlit
+      Community Cloud)— y no requiere que la persona que la usa escriba una sola línea de código. Se sube un
+      archivo (CSV o Excel) con al menos 10 filas y 10 columnas de datos, se elige uno de los 4 temas de negocio
+      que resuelve la aplicación (ver sección 3), y el resto ocurre automáticamente.</p>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SECCIÓN 2 -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-2">
+    <div class="eyebrow">Sección 2</div>
+    <h1>Para qué sirve</h1>
+    <p class="lead">Sirve para que alguien sin formación técnica en estadística o programación pueda apoyarse en
+      varias técnicas de análisis de datos a la vez, sin tener que elegir manualmente cuál usar ni programarla.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Sin esto</h3>
+        <p style="margin-bottom:0">Una persona con datos de su negocio normalmente necesitaría contratar a
+          alguien que sepa programar y de estadística, decidir qué técnica usar (¿regresión lineal? ¿una red
+          neuronal?), programarla, y luego interpretar métricas técnicas que no siempre son intuitivas.</p>
+      </div>
+      <div class="card accent">
+        <h3>Con esto</h3>
+        <p style="margin-bottom:0">Se sube el archivo, se elige el tipo de problema, y la aplicación corre
+          automáticamente una batería completa de modelos, compara sus resultados con métricas objetivas,
+          selecciona el más adecuado según el contexto de negocio, y redacta una conclusión explicando qué
+          modelo ganó, por qué, y qué variables importan más — todo en español y sin jerga innecesaria.</p>
+      </div>
+    </div>
+
+    <h3>Utilidad concreta</h3>
+    <ul class="plain">
+      <li>Anticipar el comportamiento futuro de una variable (ventas, demanda, un indicador económico).</li>
+      <li>Entender qué factores explican mejor un resultado de negocio (un indicador de desempeño).</li>
+      <li>Evaluar el riesgo y el retorno de una inversión, o el riesgo de incumplimiento de un cliente.</li>
+      <li>Decidir cuánto y cuándo comprar o producir, según el historial de demanda.</li>
+    </ul>
+    <p>La aplicación misma se encarga de manejar los errores comunes: si los datos son insuficientes para
+      alguno de los análisis, o si falta alguna variable necesaria, muestra un aviso amigable explicando por qué,
+      en vez de fallar sin explicación.</p>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SECCIÓN 3 -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-3">
+    <div class="eyebrow">Sección 3</div>
+    <h1>Qué problemas resuelve</h1>
+    <p class="lead">La aplicación organiza su trabajo en 4 tipos de problema de negocio. Cada uno usa la misma
+      batería de modelos por debajo, pero interpreta y presenta los resultados de forma distinta, según lo que
+      realmente le importa a ese tipo de decisión.</p>
+
+    <div class="grid-2">
+      <div class="theme-card">
+        <span class="icon">📈</span>
+        <h3>E1 · Pronósticos Económicos</h3>
+        <p style="margin-bottom:0">Proyectar hacia el futuro un indicador con historia en el tiempo — ventas,
+          turistas, inflación, tipo de cambio — a partir de su comportamiento pasado. Aquí es donde entra en
+          juego el pronóstico de series de tiempo (Box-Jenkins/ARIMA).</p>
+      </div>
+      <div class="theme-card">
+        <span class="icon">🏢</span>
+        <h3>E2 · Gestión Empresarial</h3>
+        <p style="margin-bottom:0">Entender qué factores explican mejor un indicador de desempeño
+          (productividad, satisfacción del cliente, rotación de personal). Aquí importa tanto acertar como poder
+          explicar el "por qué" con variables interpretables.</p>
+      </div>
+      <div class="theme-card">
+        <span class="icon">💰</span>
+        <h3>E3 · Análisis Financiero</h3>
+        <p style="margin-bottom:0">Evaluar la rentabilidad y el riesgo de una inversión (retornos, volatilidad,
+          Sharpe Ratio), o clasificar el riesgo de un cliente/activo (bueno/malo, cumple/no cumple).</p>
+      </div>
+      <div class="theme-card">
+        <span class="icon">📦</span>
+        <h3>E4 · Compras e Inventarios</h3>
+        <p style="margin-bottom:0">Predecir la demanda de un producto y traducirla en una decisión concreta:
+          cuánto pedir cada vez y en qué punto de inventario conviene volver a pedir.</p>
+      </div>
+    </div>
+
+    <div class="def-box">
+      La sección 5 de este documento tiene un <b>ejemplo interactivo completo de cada uno</b> de estos 4 temas,
+      con datos representativos y resultados reales.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SECCIÓN 4 -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-4">
+    <div class="eyebrow">Sección 4</div>
+    <h1>Cuándo se debe usar</h1>
+
+    <h3>Sí conviene usarla cuando…</h3>
+    <ul class="plain">
+      <li>Tenés datos <b>tabulares</b> (una tabla de filas y columnas — no imágenes, audio o texto libre).</li>
+      <li>La tabla tiene <b>al menos 10 filas y 10 columnas</b> (es el mínimo técnico que exige la aplicación
+        para poder entrenar los modelos con algo de estabilidad estadística).</li>
+      <li>Idealmente tenés <b>30 filas o más</b> — la aplicación avisa si son menos, porque con muy pocos datos
+        los resultados pueden ser inestables o algunas métricas no llegan a calcularse. Cuantas más filas y
+        columnas (una referencia razonable es 100×100), más confiables son los resultados.</li>
+      <li>Tenés una columna que querés explicar o predecir (la <span class="term" title="La variable que la aplicación intenta predecir o explicar usando las demás columnas de la tabla.">variable objetivo</span>)
+        y otras columnas numéricas que podrían influir en ella.</li>
+      <li>Querés una primera comparación objetiva entre varias técnicas antes de invertir tiempo en un análisis
+        a medida.</li>
+    </ul>
+
+    <h3>No conviene usarla cuando…</h3>
+    <ul class="plain">
+      <li>Los datos no son tabulares (imágenes, texto libre, audio, video).</li>
+      <li>La tabla tiene menos de 10×10 — la aplicación directamente no dejará avanzar.</li>
+      <li>Se necesita una relación de <b>causa y efecto</b> certificada. La aplicación mide
+        <span class="term" title="Que dos variables se muevan juntas no prueba que una sea la causa de la otra; puede haber una tercera variable detrás, o pura coincidencia.">asociación estadística</span>,
+        no causalidad — sus propias conclusiones lo aclaran explícitamente cuando corresponde.</li>
+    </ul>
+
+    <div class="card">
+      <h3>Manejo de casos límite</h3>
+      <p style="margin-bottom:0">Si el archivo no cumple el mínimo, si a un modelo en particular le faltan datos
+        para entrenar, o si algún cálculo no se puede completar (por ejemplo, un pronóstico de series de tiempo
+        con muy pocas observaciones), la aplicación no se cae: muestra una advertencia explicando qué pasó y por
+        qué, y sigue mostrando el resto de los resultados que sí pudo calcular.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SECCIÓN 5 -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-5">
+    <div class="eyebrow">Sección 5</div>
+    <h1>Problema Modelo — paso a paso</h1>
+    <p class="lead">Elige un tema para ver un caso realista resuelto de principio a fin, con datos y resultados
+      reales generados por la aplicación. Avanza paso a paso con los botones de abajo.</p>
+
+    <div class="tema-selector" id="temaSelector">
+      <button class="tema-btn active" data-tema="E1"><span class="t-icon">📈</span><span class="t-name">E1 · Pronósticos Económicos</span></button>
+      <button class="tema-btn" data-tema="E2"><span class="t-icon">🏢</span><span class="t-name">E2 · Gestión Empresarial</span></button>
+      <button class="tema-btn" data-tema="E3"><span class="t-icon">💰</span><span class="t-name">E3 · Análisis Financiero</span></button>
+      <button class="tema-btn" data-tema="E4"><span class="t-icon">📦</span><span class="t-name">E4 · Compras e Inventarios</span></button>
+    </div>
+
+    <div class="stepper" id="stepper"></div>
+
+    <div id="step-content"></div>
+
+    <div class="step-nav">
+      <button class="nav-btn" id="btnPrev">← Anterior</button>
+      <span class="lbl" id="stepLabel">Paso 1 de 6</span>
+      <button class="nav-btn primary" id="btnNext">Siguiente →</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Material explicativo generado para la Plataforma de Modelado Predictivo E1–E4 · Los ejemplos de la sección 5
+  usan datos sintéticos representativos, corridos con la lógica real de la aplicación · Documento autónomo, sin
+  conexión a internet ni dependencias externas.
+</footer>
+
+<script>
+/* ============================================================
+   DATOS REALES — generados corriendo las clases de la app
+   (BateriaRegresion, BateriaSeriesTiempo, EstrategiaE1..E4)
+   sobre 4 datasets representativos, uno por tema.
+   ============================================================ */
+const DATOS = {"E1":{"muestra":[{"mes":"2022-01","visitantes":2844.0,"mes_numero":0.0,"indice_estacional":1.27,"gasto_promocion":10618.0,"tipo_cambio":3.952,"eventos_culturales":0.0},{"mes":"2022-02","visitantes":3717.0,"mes_numero":1.0,"indice_estacional":4.33,"gasto_promocion":19261.0,"tipo_cambio":3.849,"eventos_culturales":4.0},{"mes":"2022-03","visitantes":3474.0,"mes_numero":2.0,"indice_estacional":8.38,"gasto_promocion":15980.0,"tipo_cambio":4.142,"eventos_culturales":1.0},{"mes":"2022-04","visitantes":3788.0,"mes_numero":3.0,"indice_estacional":12.32,"gasto_promocion":13980.0,"tipo_cambio":4.02,"eventos_culturales":3.0},{"mes":"2022-05","visitantes":3922.0,"mes_numero":4.0,"indice_estacional":15.11,"gasto_promocion":7340.0,"tipo_cambio":3.861,"eventos_culturales":3.0},{"mes":"2022-06","visitantes":4016.0,"mes_numero":5.0,"indice_estacional":15.99,"gasto_promocion":7340.0,"tipo_cambio":4.048,"eventos_culturales":3.0}],"n_filas":36,"bateria":[{"modelo":"Regresión Lineal Múltiple","R2":0.6822680084718087,"RMSE":211.17732940318436,"MAE":191.44916783400942,"Estabilidad_CV":0.26570409543815926},{"modelo":"Regresión No Lineal (Polinómica g=3, vars=indice_estacional, mes_numero, eventos_culturales, tipo_cambio)","R2":-15.311122747707557,"RMSE":1513.0690538598537,"MAE":834.8936296804641,"Estabilidad_CV":51.787681437738826},{"modelo":"Regresión Ridge (L2)","R2":0.6856866633360048,"RMSE":210.03816984975708,"MAE":190.74008922467328,"Mejor_Alpha":0.1,"Estabilidad_CV":0.21068208213232698},{"modelo":"Regresión Lasso (L1)","R2":0.6824188297773486,"RMSE":211.12720253223793,"MAE":191.66898785683952,"Mejor_Alpha":1.0,"Estabilidad_CV":0.2812084102334461},{"modelo":"Red Neuronal MLP (Perceptrón Multicapa)","R2":-2.4050385825513905,"RMSE":691.3179597678733,"MAE":569.3139684792483,"Estabilidad_CV":null},{"modelo":"XGBoost","R2":0.22140681270368523,"RMSE":330.576609123637,"MAE":267.5235900878906,"Estabilidad_CV":1.4624613935400215}],"modelo_ganador":"Regresión Ridge (L2)","metricas_ganador":{"R2":0.6856866633360048,"RMSE":210.03816984975708,"MAE":190.74008922467328,"Mejor_Alpha":0.1,"Estabilidad_CV":0.21068208213232698},"drivers":{"indice_estacional":1.5812343658812584,"gasto_promocion":0.9180397477742186},"efectos":{"indice_estacional":385.9400270032138,"gasto_promocion":234.06817754232907},"metricas_dominio":{"Tasa de crecimiento promedio (%)":1.8778128614960383,"Volatilidad del crecimiento (%)":12.446496234644634,"Último valor observado":4223.0},"arima_orden":[1,0,0],"arima_metricas":{"RMSE":369.2011672100568,"MAE":355.1408796146396,"R2":-5.766850439590359},"arima_train":[2844.0,3717.0,3474.0,3788.0,3922.0,4016.0,3986.0,4029.0,3462.0,3681.0,2634.0,3328.0,4087.0,3273.0,3716.0,3740.0,4263.0,4418.0,4090.0,3669.0,3788.0,3490.0,3526.0,3485.0,3478.0,4049.0,3630.0,4443.0,4584.0],"arima_test":[4371.0,4334.0,4083.0,3945.0,4183.0,4058.0,4223.0],"arima_pred":[4057.055924958713,3861.0366455073645,3788.118930446966,3760.9940823987963,3750.9038405278484,3747.1503455466627,3745.7540733111723],"arima_ic_inf":[3261.6736430382916,3012.404948198203,2932.3796044145924,2904.275858038736,2894.050245797913,2890.278020156457,2888.8791560330988],"arima_ic_sup":[4852.438206879135,4709.668342816526,4643.858256479339,4617.712306758856,4607.757435257784,4604.022670936869,4602.628990589246]},"E2":{"muestra":[{"productividad_empleado":61.59,"horas_capacitacion":3.7,"antiguedad_promedio_anios":4.57,"rotacion_personal_pct":29.4,"satisfaccion_clima":5.6,"tamano_tienda_m2":86.0},{"productividad_empleado":79.6,"horas_capacitacion":13.1,"antiguedad_promedio_anios":2.65,"rotacion_personal_pct":19.3,"satisfaccion_clima":5.39,"tamano_tienda_m2":110.0},{"productividad_empleado":106.07,"horas_capacitacion":19.8,"antiguedad_promedio_anios":4.93,"rotacion_personal_pct":11.1,"satisfaccion_clima":6.7,"tamano_tienda_m2":299.0},{"productividad_empleado":68.63,"horas_capacitacion":4.5,"antiguedad_promedio_anios":0.73,"rotacion_personal_pct":10.5,"satisfaccion_clima":6.81,"tamano_tienda_m2":103.0},{"productividad_empleado":67.87,"horas_capacitacion":11.3,"antiguedad_promedio_anios":0.78,"rotacion_personal_pct":13.8,"satisfaccion_clima":3.27,"tamano_tienda_m2":182.0},{"productividad_empleado":101.72,"horas_capacitacion":17.8,"antiguedad_promedio_anios":6.67,"rotacion_personal_pct":24.2,"satisfaccion_clima":5.25,"tamano_tienda_m2":350.0}],"n_filas":28,"bateria":[{"modelo":"Regresión Lineal Múltiple","R2":0.9190776834919708,"RMSE":4.080047632109153,"MAE":3.244345715622605,"Estabilidad_CV":0.012079315653546141},{"modelo":"Regresión No Lineal (Polinómica g=3, vars=horas_capacitacion, antiguedad_promedio_anios, tamano_tienda_m2, rotacion_personal_pct)","R2":-2.4718777534115333,"RMSE":26.72472792495926,"MAE":17.844001917478984,"Estabilidad_CV":6.314622109467155},{"modelo":"Regresión Ridge (L2)","R2":0.9082232803951938,"RMSE":4.345075681205957,"MAE":3.7408588011614037,"Mejor_Alpha":1.0,"Estabilidad_CV":0.019043872528455297},{"modelo":"Regresión Lasso (L1)","R2":0.9188375541106304,"RMSE":4.0860967271626185,"MAE":3.2522110683856233,"Mejor_Alpha":0.01,"Estabilidad_CV":0.01147070162959768},{"modelo":"Red Neuronal MLP (Perceptrón Multicapa)","R2":0.843942133348298,"RMSE":5.665965331176577,"MAE":4.801565917225953,"Estabilidad_CV":0.08166784148015305},{"modelo":"XGBoost","R2":0.6827827465966843,"RMSE":8.078104746337903,"MAE":5.206281127929683,"Estabilidad_CV":0.24378056197182135}],"modelo_ganador":"Regresión Lineal Múltiple","metricas_ganador":{"R2":0.9190776834919708,"RMSE":4.080047632109153,"MAE":3.244345715622605,"Estabilidad_CV":0.012079315653546141},"drivers":{"horas_capacitacion":0.6504757713114915,"antiguedad_promedio_anios":0.2665921777961814},"efectos":{"horas_capacitacion":8.581274374024815,"antiguedad_promedio_anios":4.803829456855041},"metricas_dominio":{"Driver #1: horas_capacitacion":8.558899333675265,"Driver #2: antiguedad_promedio_anios":4.95165581705754,"Driver #3: satisfaccion_clima":4.361394739262448},"conclusion_dominio":["Para un caso de **gestión empresarial**, más allá de la precisión predictiva interesa la interpretabilidad del modelo: ante desempeños similares, se prioriza el modelo lineal o penalizado más interpretable sobre la red neuronal MLP, salvo que esta última aporte una mejora sustancial (mayor a 0.05 en R²)."]},"E3":{"muestra":[{"valor_fondo":919.74,"tasa_interes_referencia":7.75,"inflacion_mensual_pct":0.72,"indice_bursatil":2.25,"volumen_transado":2613931.0},{"valor_fondo":982.27,"tasa_interes_referencia":6.94,"inflacion_mensual_pct":0.47,"indice_bursatil":6.35,"volumen_transado":1536061.0},{"valor_fondo":1053.04,"tasa_interes_referencia":2.57,"inflacion_mensual_pct":0.8,"indice_bursatil":8.5,"volumen_transado":1115131.0},{"valor_fondo":1052.01,"tasa_interes_referencia":2.59,"inflacion_mensual_pct":0.15,"indice_bursatil":8.57,"volumen_transado":4020549.0},{"valor_fondo":1016.87,"tasa_interes_referencia":8.91,"inflacion_mensual_pct":0.49,"indice_bursatil":8.78,"volumen_transado":3481238.0},{"valor_fondo":1025.29,"tasa_interes_referencia":4.62,"inflacion_mensual_pct":0.78,"indice_bursatil":8.48,"volumen_transado":3816319.0}],"n_filas":36,"bateria":[{"modelo":"Regresión Lineal Múltiple","R2":0.9137888567161789,"RMSE":22.774418924300022,"MAE":14.80852993371417,"Estabilidad_CV":0.05587934215175446},{"modelo":"Regresión No Lineal (Polinómica g=3, vars=indice_bursatil, tasa_interes_referencia, inflacion_mensual_pct, volumen_transado)","R2":-24.74199477617143,"RMSE":393.5380249457907,"MAE":342.93167630194,"Estabilidad_CV":130.69622569221195},{"modelo":"Regresión Ridge (L2)","R2":0.9130778117495038,"RMSE":22.86814452748265,"MAE":16.1734826439002,"Mejor_Alpha":0.1,"Estabilidad_CV":0.04731941939892681},{"modelo":"Regresión Lasso (L1)","R2":0.9210670143975183,"RMSE":21.791888484217807,"MAE":15.384185861979006,"Mejor_Alpha":1.0,"Estabilidad_CV":0.06177849991041761},{"modelo":"Red Neuronal MLP (Perceptrón Multicapa)","R2":-7.13063365805017,"RMSE":221.17080544193865,"MAE":186.22171559271925,"Estabilidad_CV":31.393387170019672},{"modelo":"XGBoost","R2":0.8435136913038354,"RMSE":30.683420783261568,"MAE":23.74759216308594,"Estabilidad_CV":0.7688601727248099}],"modelo_ganador":"Regresión Lasso (L1)","metricas_ganador":{"R2":0.9210670143975183,"RMSE":21.791888484217807,"MAE":15.384185861979006,"Mejor_Alpha":1.0,"Estabilidad_CV":0.06177849991041761},"drivers":{"indice_bursatil":1.2748238373542846,"tasa_interes_referencia":0.29356783324103425},"efectos":{"indice_bursatil":54.958409910997034,"tasa_interes_referencia":-29.694487719238168},"metricas_dominio":{"VaR histórico 95% (%)":-7.374522425917952,"Volatilidad anualizada (%)":17.766594706138893,"Retorno anualizado (%)":9.719211133668216,"Sharpe Ratio":0.5470497466973756},"retornos":[0.06798660491008324,0.07204740040925617,-0.0009781204892501671,-0.03340272430870428,0.008280311150884456,-0.0051107491538979755,-0.05594823783147884,-0.011370952667760559,0.011354684201128284,0.018383116613352124,0.05867175229975308,-0.012349841532844574,-0.10055108510119481,0.04906957577860682,0.020467020187924456,-0.01788879772287566,0.08105822288690656,-0.001478810082622739,0.027288623052007077,-0.0383946426080084,0.011684254306634445,-0.02819446436254125,-0.00937567636699932,0.037192257654454774,-0.018901166242172418,0.0077685821361646035,-0.07205113306217303,0.11242955541640587,0.021652453725854448,-0.03209336920689443,0.0941597252528319,-0.07769810371886132,0.1160383566795149,-0.026644091211577625,0.010376460406750443]},"E4":{"muestra":[{"mes":"2023-01","demanda_panes":593.0,"gasto_publicidad":345.5,"precio_promedio":8.96,"temporada_indice":15.0,"clientes_nuevos":13.0,"competencia_index":1.07},{"mes":"2023-02","demanda_panes":609.0,"gasto_publicidad":361.5,"precio_promedio":9.12,"temporada_indice":22.5,"clientes_nuevos":12.0,"competencia_index":1.26},{"mes":"2023-03","demanda_panes":655.0,"gasto_publicidad":426.4,"precio_promedio":9.71,"temporada_indice":27.99,"clientes_nuevos":7.0,"competencia_index":1.38},{"mes":"2023-04","demanda_panes":549.0,"gasto_publicidad":212.0,"precio_promedio":9.04,"temporada_indice":30.0,"clientes_nuevos":16.0,"competencia_index":0.84},{"mes":"2023-05","demanda_panes":590.0,"gasto_publicidad":393.2,"precio_promedio":13.38,"temporada_indice":27.99,"clientes_nuevos":14.0,"competencia_index":1.32},{"mes":"2023-06","demanda_panes":576.0,"gasto_publicidad":326.9,"precio_promedio":8.48,"temporada_indice":22.5,"clientes_nuevos":13.0,"competencia_index":0.61}],"n_filas":30,"bateria":[{"modelo":"Regresión Lineal Múltiple","R2":0.9368544478108639,"RMSE":26.210499441990596,"MAE":21.86049071342173,"Estabilidad_CV":0.0629361498191633},{"modelo":"Regresión No Lineal (Polinómica g=3, vars=gasto_publicidad, clientes_nuevos, temporada_indice, competencia_index)","R2":-7.67274886161837,"RMSE":307.1724765181387,"MAE":247.3671368338637,"Estabilidad_CV":2.251951702037348},{"modelo":"Regresión Ridge (L2)","R2":0.9370162786927726,"RMSE":26.17689145819584,"MAE":21.7496187529552,"Mejor_Alpha":0.01,"Estabilidad_CV":0.06215677227089879},{"modelo":"Regresión Lasso (L1)","R2":0.9408893024028033,"RMSE":25.359282177239937,"MAE":18.88937783844085,"Mejor_Alpha":1.0,"Estabilidad_CV":0.06224819324373513},{"modelo":"Red Neuronal MLP (Perceptrón Multicapa)","R2":-0.761133599655329,"RMSE":138.42038895001122,"MAE":98.6190455061074,"Estabilidad_CV":0.7385811311066175},{"modelo":"XGBoost","R2":0.8318657919942269,"RMSE":42.76928156520917,"MAE":32.47557576497396,"Estabilidad_CV":0.16568736296524256}],"modelo_ganador":"Regresión Lasso (L1)","metricas_ganador":{"R2":0.9408893024028033,"RMSE":25.359282177239937,"MAE":18.88937783844085,"Mejor_Alpha":1.0,"Estabilidad_CV":0.06224819324373513},"drivers":{"gasto_publicidad":2.8166042373229754,"temporada_indice":0.9979077499699898},"efectos":{"gasto_publicidad":127.2260908751,"temporada_indice":55.81547746615706},"metricas_dominio":{"Demanda promedio por periodo":625.5,"Desviación estándar de la demanda":122.29493744279823,"Cantidad económica de pedido (EOQ)":2136.8551658921574,"Stock de seguridad":533.8772852751451,"Punto de reorden":4912.377285275145},"demanda_promedio":625.5,"demanda_std":122.29493744279823}};
+
+const TEMA_META = {
+  E1:{
+    nombre:'Pronósticos Económicos', icono:'📈',
+    objetivo:'visitantes', unidad:'visitantes/mes', unidadCorta:'visitantes',
+    contexto:"La oficina de turismo de una ciudad intermedia quiere anticipar cuántos visitantes llegarán en "+
+      "los próximos meses, para planear personal, presupuesto de promoción y capacidad hotelera. Cuenta con "+
+      "36 meses de historia: cuántos visitantes llegaron cada mes, cuánto se gastó en promoción, el tipo de "+
+      "cambio de ese mes, y cuántos eventos culturales hubo.",
+    porQue:"Este es exactamente el caso <b>E1</b>: hay una variable objetivo numérica (visitantes) con una "+
+      "columna de fecha, así que la aplicación puede usar tanto la batería de regresión como el pronóstico de "+
+      "series de tiempo (Box-Jenkins/ARIMA), que está pensado específicamente para datos ordenados en el tiempo.",
+    colFecha:'mes',
+  },
+  E2:{
+    nombre:'Gestión Empresarial', icono:'🏢',
+    objetivo:'productividad_empleado', unidad:'unidades/hora-empleado', unidadCorta:'puntos de productividad',
+    contexto:"Una cadena de tiendas de retail quiere entender qué hace que unas tiendas tengan empleados más "+
+      "productivos que otras, para decidir dónde enfocar sus esfuerzos de gestión. Tiene datos de 28 tiendas: "+
+      "horas de capacitación del personal, antigüedad promedio, rotación de personal, clima laboral y tamaño "+
+      "de la tienda.",
+    porQue:"Este es el caso <b>E2</b>: el objetivo es un KPI de desempeño (productividad), y lo que más le "+
+      "importa a la gerencia no es solo predecir bien, sino <b>entender qué variables mueven el resultado</b> "+
+      "para poder actuar sobre ellas — por eso esta estrategia prioriza modelos interpretables.",
+    colFecha:null,
+  },
+  E3:{
+    nombre:'Análisis Financiero', icono:'💰',
+    objetivo:'valor_fondo', unidad:'USD', unidadCorta:'USD',
+    contexto:"Un pequeño fondo de inversión quiere evaluar el comportamiento de uno de sus fondos a lo largo "+
+      "de 36 meses: cómo se ha movido su valor, qué tan riesgoso ha sido, y si el retorno obtenido compensa "+
+      "ese riesgo. Cuenta con la tasa de interés de referencia, la inflación mensual, un índice bursátil y el "+
+      "volumen transado de cada mes.",
+    porQue:"Este es el caso <b>E3</b>: la variable objetivo es un valor financiero continuo, así que la "+
+      "aplicación trata la serie como una serie de retornos y calcula métricas de riesgo/retorno (VaR, "+
+      "volatilidad anualizada, Sharpe Ratio) además de la batería de regresión habitual.",
+    colFecha:null,
+  },
+  E4:{
+    nombre:'Compras e Inventarios', icono:'📦',
+    objetivo:'demanda_panes', unidad:'panes/mes', unidadCorta:'panes',
+    contexto:"Una panadería de barrio quiere dejar de improvisar cuánta masa preparar cada mes. Tiene 30 meses "+
+      "de historia: cuántos panes vendió, cuánto gastó en publicidad, el precio promedio que cobró, un índice "+
+      "de temporada, cuántos clientes nuevos llegaron y qué tan fuerte estuvo la competencia.",
+    porQue:"Este es el caso <b>E4</b>: además de predecir la demanda, lo que de verdad necesita el dueño es "+
+      "una respuesta concreta — <b>cuánto pedir cada vez</b> y <b>en qué momento volver a pedir</b> — por eso "+
+      "esta estrategia traduce la demanda en una cantidad económica de pedido y un punto de reorden.",
+    colFecha:'mes',
+  },
+};
+
+const PASOS = ['problema','datos','bateria','ganador','dominio','conclusion'];
+const PASO_TITULOS = [
+  'El problema', 'Los datos', 'La batería de modelos', 'El modelo ganador',
+  'Resultado para la decisión', 'Conclusión'
+];
+
+let temaActivo = 'E1';
+let pasoActivo = 0;
+
+/* ---------- helpers de formato ---------- */
+const fmt = (n, dec=2) => {
+  if (n===null || n===undefined || Number.isNaN(n)) return '—';
+  return Number(n).toLocaleString('es-ES', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+};
+const fmtPct = (n, dec=1) => fmt(n, dec) + '%';
+const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+const stdSample = arr => { const m=mean(arr); const s=arr.reduce((a,b)=>a+(b-m)**2,0); return Math.sqrt(s/(arr.length-1)); };
+
+function metricaLabel(clave){
+  const mapa = {
+    'R2':'R²', 'RMSE':'RMSE', 'MAE':'MAE', 'Estabilidad_CV':'Estabilidad', 'Mejor_Alpha':'Alpha'
+  };
+  return mapa[clave] || clave;
+}
+
+/* ============================================================
+   RENDER: paso "El problema"
+   ============================================================ */
+function renderProblema(tema){
+  const meta = TEMA_META[tema];
+  return `
+    <div class="step-content-inner">
+      <h2>${meta.icono} ${meta.nombre}</h2>
+      <div class="card">
+        <h3>El contexto</h3>
+        <p style="margin-bottom:0">${meta.contexto}</p>
+      </div>
+      <div class="def-box">${meta.porQue}</div>
+      <p class="dim">Variable objetivo: <span class="num">${meta.objetivo}</span>
+        ${meta.colFecha ? ' &nbsp;·&nbsp; Columna de fecha: <span class="num">'+meta.colFecha+'</span>' : ''}
+      </p>
+    </div>`;
+}
+
+/* ============================================================
+   RENDER: paso "Los datos"
+   ============================================================ */
+function renderDatos(tema){
+  const d = DATOS[tema];
+  const meta = TEMA_META[tema];
+  const cols = Object.keys(d.muestra[0]);
+  const filasHtml = d.muestra.map(fila => `<tr>${cols.map(c=>{
+    const v = fila[c];
+    return `<td>${typeof v === 'number' ? fmt(v, Number.isInteger(v)?0:2) : v}</td>`;
+  }).join('')}</tr>`).join('');
+  return `
+    <div class="step-content-inner">
+      <h2>Los datos</h2>
+      <p>Esta es una muestra de las primeras filas (de un total de <span class="num">${d.n_filas}</span> filas
+        con las que trabaja este ejemplo):</p>
+      <div class="table-wrap">
+        <table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${filasHtml}</tbody></table>
+      </div>
+      <p class="dim" style="margin-top:.8rem">La aplicación exige un mínimo de 10 filas × 10 columnas; este
+        ejemplo tiene ${d.n_filas} filas, más que suficiente para que los modelos sean razonablemente estables.</p>
+    </div>`;
+}
+
+/* ============================================================
+   RENDER: paso "La batería de modelos"
+   ============================================================ */
+function renderBateria(tema){
+  const d = DATOS[tema];
+  const filas = d.bateria;
+  const cols = ['R2','RMSE','MAE','Mejor_Alpha','Estabilidad_CV'];
+  const filasHtml = filas.map(f=>{
+    const esGanador = f.modelo === d.modelo_ganador;
+    const celdas = cols.map(c=>{
+      if (f.error) return '';
+      const v = f[c];
+      if (v===undefined) return '<td>—</td>';
+      if (c==='R2') return `<td>${fmt(v*100,1)}%</td>`;
+      return `<td>${fmt(v, c==='Mejor_Alpha'?3:2)}</td>`;
+    }).join('');
+    const nombreCorto = f.modelo.length>42 ? f.modelo.slice(0,42)+'…' : f.modelo;
+    if (f.error){
+      return `<tr><td title="${f.modelo}">${nombreCorto}</td><td colspan="5" class="dim">⚠️ No entrenó: ${f.error}</td></tr>`;
+    }
+    return `<tr class="${esGanador?'winner':''}"><td title="${f.modelo}">${nombreCorto}${esGanador?' 🏆':''}</td>${celdas}</tr>`;
+  }).join('');
+
+  return `
+    <div class="step-content-inner">
+      <h2>La batería de modelos que compite</h2>
+      <p>La aplicación entrena, en paralelo, esta batería de técnicas sobre los mismos datos y compara sus
+        resultados objetivamente:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Modelo</th><th>R²</th><th>RMSE</th><th>MAE</th><th>Alpha</th><th>Estabilidad</th></tr></thead>
+          <tbody>${filasHtml}</tbody>
+        </table>
+      </div>
+      <div class="def-box">
+        <p><b>R²</b> (qué % de la variación de ${TEMA_META[tema].objetivo} logra explicar el modelo — 100% sería
+          perfecto; puede ser negativo si el modelo predice peor que simplemente usar el promedio).</p>
+        <p><b>RMSE</b> y <b>MAE</b> (el error promedio de las predicciones, en las mismas unidades que
+          ${TEMA_META[tema].objetivo} — mientras más bajo, mejor; RMSE castiga más los errores grandes que MAE).</p>
+        <p><b>Alpha</b> (solo aplica a Ridge y Lasso: qué tan fuerte se penalizan los coeficientes para evitar
+          sobreajuste — la aplicación lo elige automáticamente probando varios valores).</p>
+        <p style="margin-bottom:0"><b>Estabilidad</b> (qué tan parecido es el resultado si se repite el
+          entrenamiento con distintos subconjuntos de los mismos datos — mientras más bajo, más consistente y
+          confiable es el modelo).</p>
+      </div>
+    </div>`;
+}
+
+/* ============================================================
+   RENDER: paso "El modelo ganador"
+   ============================================================ */
+function renderGanador(tema){
+  const d = DATOS[tema];
+  const meta = TEMA_META[tema];
+  const mg = d.metricas_ganador;
+  const drivers = Object.entries(d.drivers||{});
+  const efectos = d.efectos||{};
+
+  let alphaTxt = '';
+  if (mg.Mejor_Alpha !== undefined){
+    alphaTxt = `<p>El parámetro de regularización (<span class="num">alpha=${fmt(mg.Mejor_Alpha,3)}</span>) fue
+      elegido automáticamente probando varios valores por validación cruzada
+      (<span class="term" title="Se entrena el modelo varias veces sobre distintos subconjuntos de los datos, para no depender de un único reparto de entrenamiento/prueba.">cross-validation</span>).</p>`;
+  }
+
+  let driversTxt = '';
+  if (drivers.length){
+    const frases = drivers.map(([k])=>{
+      const efecto = efectos[k];
+      if (efecto===undefined) return `<b>${k}</b>`;
+      const dir = efecto>0 ? 'aumenta' : 'disminuye';
+      return `si <b>${k}</b> sube en una desviación estándar (una unidad típica de variación de esa columna),
+        ${meta.objetivo} ${dir} en promedio ${fmt(Math.abs(efecto),1)} ${meta.unidadCorta}`;
+    });
+    driversTxt = `
+      <div class="def-box">
+        <p><b>Variables más influyentes</b> (medidas por
+          <span class="term" title="Se revuelve al azar cada variable, una a la vez, y se mide cuánto empeora la predicción del modelo — si empeora mucho, esa variable era importante para el modelo.">importancia por permutación</span>):
+          ${drivers.map(([k,v])=>`<code>${k}</code>`).join(', ')}.</p>
+        <p style="margin-bottom:0"><b>Efecto estimado</b> (manteniendo las demás variables en su valor
+          promedio — un análisis
+          <span class="term" title="Latín para 'lo demás constante': se mueve una sola variable y se observa el efecto, como si las demás no cambiaran.">ceteris paribus</span>,
+          que no prueba causalidad, solo la asociación aprendida por el modelo): ${frases.join('; ')}.</p>
+      </div>`;
+  }
+
+  return `
+    <div class="step-content-inner">
+      <h2>El modelo ganador y por qué</h2>
+      <div class="card accent">
+        <h3>🏆 ${d.modelo_ganador}</h3>
+        <div class="grid-4">
+          <div class="metric-box"><div class="k">R²</div><div class="v">${fmt(mg.R2*100,1)}%</div>
+            <div class="d">de la variación explicada</div></div>
+          <div class="metric-box"><div class="k">RMSE</div><div class="v">${fmt(mg.RMSE,1)}</div>
+            <div class="d">error típico (${meta.unidadCorta})</div></div>
+          <div class="metric-box"><div class="k">MAE</div><div class="v">${fmt(mg.MAE,1)}</div>
+            <div class="d">error absoluto promedio</div></div>
+          <div class="metric-box"><div class="k">Estabilidad</div><div class="v">${fmt(mg.Estabilidad_CV,3)}</div>
+            <div class="d">a menor valor, más consistente</div></div>
+        </div>
+      </div>
+      ${alphaTxt}
+      <p>La aplicación no solo elige el modelo con mejor R² a secas: para el caso <b>${tema}</b>, la estrategia
+        de selección tiene en cuenta el contexto de negocio antes de declarar un ganador (por ejemplo, en E2 se
+        prioriza la interpretabilidad; en E3-clasificación se prioriza el AUC; en E1 se recomienda además
+        priorizar el pronóstico de series de tiempo para el objetivo final).</p>
+      ${driversTxt}
+    </div>`;
+}
+
+/* ============================================================
+   RENDER: paso "Resultado para la decisión" (específico por tema)
+   ============================================================ */
+function renderDominio(tema){
+  if (tema==='E1') return renderDominioE1();
+  if (tema==='E2') return renderDominioE2();
+  if (tema==='E3') return renderDominioE3();
+  if (tema==='E4') return renderDominioE4();
+}
+
+function construirGraficoLinea(train, test, pred, icInf, icSup){
+  const todos = [...train, ...test, ...pred, ...icInf, ...icSup];
+  const minY = Math.min(...todos)*0.92, maxY = Math.max(...todos)*1.05;
+  const w=680, h=260, padL=50, padB=28, padT=14, padR=14;
+  const nTotal = train.length + test.length;
+  const xAt = i => padL + (i/(nTotal-1))*(w-padL-padR);
+  const yAt = v => padT + (1 - (v-minY)/(maxY-minY)) * (h-padT-padB);
+
+  const pathFrom = (arr, offset) => arr.map((v,i)=>`${i===0?'M':'L'} ${xAt(offset+i).toFixed(1)} ${yAt(v).toFixed(1)}`).join(' ');
+  const trainPath = pathFrom(train, 0);
+  const testPath = pathFrom(test, train.length);
+  const predPath = pathFrom(pred, train.length);
+
+  const icPts = icSup.map((v,i)=>`${xAt(train.length+i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ') + ' ' +
+    icInf.slice().reverse().map((v,i)=>`${xAt(train.length+(icInf.length-1-i)).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+
+  const yTicks = 4;
+  let gridLines = '';
+  for(let i=0;i<=yTicks;i++){
+    const v = minY + (maxY-minY)*i/yTicks;
+    const y = yAt(v);
+    gridLines += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" />`;
+    gridLines += `<text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#6f6f6f" font-family="ui-monospace,monospace">${Math.round(v)}</text>`;
+  }
+
+  return `
+    <svg class="chart" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+      ${gridLines}
+      <polygon points="${icPts}" fill="rgba(255,212,0,0.12)" stroke="none"/>
+      <path d="${trainPath}" fill="none" stroke="#EDEDED" stroke-width="1.6"/>
+      <path d="${testPath}" fill="none" stroke="#7CD98A" stroke-width="1.8"/>
+      <path d="${predPath}" fill="none" stroke="#FFD400" stroke-width="1.8" stroke-dasharray="5,4"/>
+      <line x1="${xAt(train.length-1).toFixed(1)}" y1="${padT}" x2="${xAt(train.length-1).toFixed(1)}" y2="${h-padB}" stroke="rgba(255,255,255,0.15)" stroke-dasharray="2,3"/>
+    </svg>
+    <div class="chart-legend">
+      <span><span class="sw" style="background:#EDEDED"></span>Histórico (entrenamiento)</span>
+      <span><span class="sw" style="background:#7CD98A"></span>Real (prueba)</span>
+      <span><span class="sw" style="background:#FFD400"></span>Pronóstico ARIMA</span>
+      <span><span class="sw" style="background:rgba(255,212,0,0.35)"></span>Intervalo de confianza 95%</span>
+    </div>`;
+}
+
+function renderDominioE1(){
+  const d = DATOS.E1;
+  const md = d.metricas_dominio;
+  const grafico = construirGraficoLinea(d.arima_train, d.arima_test, d.arima_pred, d.arima_ic_inf, d.arima_ic_sup);
+  return `
+    <div class="step-content-inner">
+      <h2>El pronóstico</h2>
+      <p>Como este caso tiene una columna de fecha, la aplicación además ajusta un modelo Box-Jenkins
+        (<span class="term" title="Notación estándar (p,d,q) que describe la estructura del modelo ARIMA elegido automáticamente para esta serie.">ARIMA</span>${d.arima_orden.join(',')})
+        que pronostica directamente sobre la serie de tiempo:</p>
+      <div class="card">${grafico}</div>
+      <p class="dim">RMSE del pronóstico: <span class="num">${fmt(d.arima_metricas.RMSE,1)}</span> visitantes ·
+        MAE: <span class="num">${fmt(d.arima_metricas.MAE,1)}</span> visitantes.</p>
+      <div class="def-box">
+        La <b>banda sombreada</b> es el intervalo de confianza del 95%: el rango donde se espera que caiga el
+        valor real con esa probabilidad, según el modelo. Una banda más angosta indica un pronóstico más
+        preciso; una banda ancha indica más incertidumbre.
+      </div>
+      <div class="grid-4">
+        <div class="metric-box"><div class="k">Tasa de crecimiento</div>
+          <div class="v">${fmt(md['Tasa de crecimiento promedio (%)'],2)}%</div>
+          <div class="d">promedio por mes</div></div>
+        <div class="metric-box"><div class="k">Volatilidad</div>
+          <div class="v">${fmt(md['Volatilidad del crecimiento (%)'],2)}%</div>
+          <div class="d">qué tanto varía ese crecimiento</div></div>
+        <div class="metric-box"><div class="k">Último valor</div>
+          <div class="v">${fmt(md['Último valor observado'],0)}</div>
+          <div class="d">visitantes en el mes más reciente</div></div>
+      </div>
+    </div>`;
+}
+
+function renderDominioE2(){
+  const d = DATOS.E2;
+  const md = d.metricas_dominio;
+  const entradas = Object.entries(md);
+  const maxV = Math.max(...entradas.map(([,v])=>Math.abs(v)));
+  const barras = entradas.map(([k,v])=>{
+    const nombre = k.replace(/Driver #\d+: /,'');
+    const pct = (Math.abs(v)/maxV*100).toFixed(0);
+    return `<div class="bar-row">
+      <div class="bar-label">${nombre}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-val">${fmt(v,2)}</div>
+    </div>`;
+  }).join('');
+  return `
+    <div class="step-content-inner">
+      <h2>Qué mueve la productividad</h2>
+      <p>Para un caso de <b>gestión empresarial</b>, la aplicación calcula el peso relativo de cada variable
+        sobre el KPI, usando sus coeficientes estandarizados (comparables entre sí porque todas las variables se
+        llevan a la misma escala antes de compararlas):</p>
+      <div class="card">${barras}</div>
+      <div class="def-box">
+        Estos valores son <b>coeficientes estandarizados</b>: qué tanto cambia la productividad (en desviaciones
+        estándar) cuando esa variable sube una desviación estándar. Son comparables entre variables de distintas
+        unidades (horas, años, porcentaje), a diferencia de un coeficiente crudo.
+      </div>
+      <p style="margin-bottom:0">${d.conclusion_dominio[0]}</p>
+    </div>`;
+}
+
+function renderDominioE3(){
+  const d = DATOS.E3;
+  return `
+    <div class="step-content-inner">
+      <h2>Riesgo y retorno del fondo</h2>
+      <p>Ajusta la periodicidad de los datos y la tasa libre de riesgo — igual que en la aplicación real — y
+        observa cómo cambian la volatilidad anualizada, el retorno anualizado y el Sharpe Ratio
+        <span class="live-badge">EN VIVO</span>:</p>
+      <div class="card">
+        <div class="control-row">
+          <label for="e3-periodos">Periodicidad de los datos</label>
+          <select id="e3-periodos">
+            <option value="12" selected>Mensual</option>
+            <option value="252">Diaria (bursátil)</option>
+            <option value="4">Trimestral</option>
+            <option value="1">Anual</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label for="e3-tasa">Tasa libre de riesgo anual</label>
+          <input type="range" id="e3-tasa" min="0" max="15" step="0.5" value="0">
+          <span class="val" id="e3-tasa-val">0.0%</span>
+        </div>
+        <div class="grid-4" id="e3-resultados"></div>
+      </div>
+      <div class="def-box">
+        <p><b>VaR histórico 95%</b> (Value at Risk: la pérdida máxima esperada en el 95% de los meses, basada en
+        el peor 5% de los meses observados — no cambia con estos controles, es un dato histórico fijo).</p>
+        <p><b>Volatilidad anualizada</b> (qué tanto sube y baja el valor del fondo en un año típico — más alto
+        = más riesgoso).</p>
+        <p><b>Retorno anualizado</b> (la ganancia o pérdida esperada en un año, proyectada desde el promedio
+        mensual observado).</p>
+        <p style="margin-bottom:0"><b>Sharpe Ratio</b> (el retorno obtenido por cada unidad de riesgo asumido,
+        descontando la tasa libre de riesgo — mientras más alto, mejor fue la inversión en relación a su
+        riesgo; por debajo de 1 se considera modesto, por encima de 1 se considera bueno).</p>
+      </div>
+    </div>`;
+}
+
+function recalcularE3(){
+  const periodos = parseInt(document.getElementById('e3-periodos').value, 10);
+  const tasaPct = parseFloat(document.getElementById('e3-tasa').value);
+  document.getElementById('e3-tasa-val').textContent = fmtPct(tasaPct);
+
+  const retornos = DATOS.E3.retornos;
+  const media = mean(retornos);
+  const std = stdSample(retornos);
+  const tasa = tasaPct/100;
+  const volAnual = std*Math.sqrt(periodos)*100;
+  const retAnual = media*periodos*100;
+  const sharpe = (media*periodos - tasa) / (std*Math.sqrt(periodos));
+  const varFijo = DATOS.E3.metricas_dominio['VaR histórico 95% (%)'];
+
+  document.getElementById('e3-resultados').innerHTML = `
+    <div class="metric-box"><div class="k">VaR histórico 95%</div><div class="v">${fmtPct(varFijo,2)}</div><div class="d">fijo, no depende de estos controles</div></div>
+    <div class="metric-box"><div class="k">Volatilidad anualizada</div><div class="v">${fmtPct(volAnual,2)}</div><div class="d">recalculada en vivo</div></div>
+    <div class="metric-box"><div class="k">Retorno anualizado</div><div class="v">${fmtPct(retAnual,2)}</div><div class="d">recalculado en vivo</div></div>
+    <div class="metric-box"><div class="k">Sharpe Ratio</div><div class="v">${fmt(sharpe,2)}</div><div class="d">recalculado en vivo</div></div>
+  `;
+}
+
+function renderDominioE4(){
+  return `
+    <div class="step-content-inner">
+      <h2>Cuánto pedir y cuándo</h2>
+      <p>Ajusta los parámetros del negocio — igual que en la aplicación real — y observa cómo cambian la
+        cantidad económica de pedido y el punto de reorden <span class="live-badge">EN VIVO</span>:</p>
+      <div class="card">
+        <div class="control-row">
+          <label for="e4-costo-pedido">Costo por pedido (S)</label>
+          <input type="range" id="e4-costo-pedido" min="10" max="200" step="5" value="50">
+          <span class="val" id="e4-costo-pedido-val">$50</span>
+        </div>
+        <div class="control-row">
+          <label for="e4-costo-mant">Costo de mantenimiento anual (H)</label>
+          <input type="range" id="e4-costo-mant" min="1" max="20" step="0.5" value="5">
+          <span class="val" id="e4-costo-mant-val">$5.0</span>
+        </div>
+        <div class="control-row">
+          <label for="e4-lead">Lead time (días)</label>
+          <input type="range" id="e4-lead" min="1" max="30" step="1" value="7">
+          <span class="val" id="e4-lead-val">7</span>
+        </div>
+        <div class="control-row">
+          <label for="e4-servicio">Nivel de servicio</label>
+          <select id="e4-servicio">
+            <option value="1.65" selected>95%</option>
+            <option value="1.96">97.5%</option>
+            <option value="2.33">99%</option>
+          </select>
+        </div>
+        <div class="grid-4" id="e4-resultados"></div>
+      </div>
+      <div class="def-box">
+        <p><b>EOQ</b> (Cantidad Económica de Pedido: cuántas unidades pedir cada vez para minimizar el costo
+        total entre hacer pedidos y mantener inventario guardado).</p>
+        <p><b>Stock de seguridad</b> (un colchón extra de inventario para cubrir la variabilidad de la demanda
+        durante el tiempo de espera del pedido).</p>
+        <p style="margin-bottom:0"><b>Punto de reorden</b> (el nivel de inventario en el que hay que hacer un
+        nuevo pedido, para que no se agote mientras llega).</p>
+      </div>
+    </div>`;
+}
+
+function recalcularE4(){
+  const costoPedido = parseFloat(document.getElementById('e4-costo-pedido').value);
+  const costoMant = parseFloat(document.getElementById('e4-costo-mant').value);
+  const leadTime = parseFloat(document.getElementById('e4-lead').value);
+  const z = parseFloat(document.getElementById('e4-servicio').value);
+
+  document.getElementById('e4-costo-pedido-val').textContent = '$'+fmt(costoPedido,0);
+  document.getElementById('e4-costo-mant-val').textContent = '$'+fmt(costoMant,1);
+  document.getElementById('e4-lead-val').textContent = fmt(leadTime,0);
+
+  const demandaPromedio = DATOS.E4.demanda_promedio;
+  const demandaStd = DATOS.E4.demanda_std;
+  const demandaAnual = demandaPromedio*365;
+  const eoq = Math.sqrt((2*demandaAnual*costoPedido)/costoMant);
+  const stockSeg = z*demandaStd*Math.sqrt(leadTime);
+  const puntoReorden = demandaPromedio*leadTime + stockSeg;
+
+  document.getElementById('e4-resultados').innerHTML = `
+    <div class="metric-box"><div class="k">Demanda promedio</div><div class="v">${fmt(demandaPromedio,0)}</div><div class="d">panes/mes (histórico)</div></div>
+    <div class="metric-box"><div class="k">EOQ</div><div class="v">${fmt(eoq,0)}</div><div class="d">unidades por pedido</div></div>
+    <div class="metric-box"><div class="k">Stock de seguridad</div><div class="v">${fmt(stockSeg,0)}</div><div class="d">unidades de colchón</div></div>
+    <div class="metric-box"><div class="k">Punto de reorden</div><div class="v">${fmt(puntoReorden,0)}</div><div class="d">nivel para volver a pedir</div></div>
+  `;
+}
+
+/* ============================================================
+   RENDER: paso "Conclusión"
+   ============================================================ */
+const CONCLUSIONES = {
+  E1:"La oficina de turismo tiene dos señales complementarias: el modelo de regresión le dice qué variables "+
+     "(la temporada del año y el gasto en promoción) más influyen en la llegada de visitantes, mientras que el "+
+     "pronóstico ARIMA le da una proyección mes a mes con un rango de confianza. Para decisiones de "+
+     "presupuesto y personal a corto plazo, la aplicación recomienda apoyarse en el pronóstico de series de "+
+     "tiempo, precisamente porque modela de forma explícita la dependencia temporal de los datos.",
+  E2:"La cadena de tiendas puede concentrar sus esfuerzos de gestión en capacitación y retención de personal "+
+     "con más antigüedad, ya que son las dos variables con mayor influencia estandarizada sobre la "+
+     "productividad. Como el objetivo aquí es entender y actuar, no solo predecir, la aplicación elige un "+
+     "modelo interpretable (regresión lineal) en vez de una red neuronal, aun si esta última rindiera un poco "+
+     "mejor en pura precisión.",
+  E3:"El fondo tiene un Sharpe Ratio positivo pero modesto: el retorno obtenido compensa el riesgo asumido, "+
+     "aunque no de forma espectacular. El índice bursátil es, por lejos, la variable que más mueve el valor "+
+     "del fondo. Con los controles interactivos del paso anterior, el inversionista puede simular cómo "+
+     "cambiaría su lectura del riesgo si estos datos vinieran en otra periodicidad, o si quisiera comparar "+
+     "contra una tasa libre de riesgo distinta.",
+  E4:"La panadería ya tiene una respuesta concreta y accionable: pedir en las cantidades que indica el EOQ "+
+     "cada vez que su inventario llegue al punto de reorden, en vez de pedir \"a ojo\". El gasto en publicidad "+
+     "y la temporada del año son las variables que más mueven su demanda, así que ambas cantidades conviene "+
+     "revisarlas cuando cambien fuertemente esas dos condiciones del negocio."
+};
+
+function renderConclusion(tema){
+  const meta = TEMA_META[tema];
+  return `
+    <div class="step-content-inner">
+      <h2>En resumen</h2>
+      <div class="card accent">
+        <p style="margin-bottom:0">${CONCLUSIONES[tema]}</p>
+      </div>
+      <p class="dim">Así es como la aplicación real redacta automáticamente su conclusión para el caso
+        ${tema} — combinando el modelo ganador, sus variables más influyentes, y (cuando aplica) las métricas
+        específicas del tema de negocio, en un solo párrafo en español simple.</p>
+    </div>`;
+}
+
+/* ============================================================
+   MOTOR DE RENDERIZADO Y NAVEGACIÓN
+   ============================================================ */
+function renderStepper(){
+  const cont = document.getElementById('stepper');
+  let html = '';
+  PASOS.forEach((_, i) => {
+    const estado = i < pasoActivo ? 'done' : (i===pasoActivo ? 'current' : '');
+    html += `<div class="step-dot ${estado}" data-step="${i}" title="${PASO_TITULOS[i]}">${i+1}</div>`;
+    if (i < PASOS.length-1) html += `<div class="step-line ${i<pasoActivo?'done':''}"></div>`;
+  });
+  cont.innerHTML = html;
+  cont.querySelectorAll('.step-dot').forEach(dot=>{
+    dot.addEventListener('click', ()=>{ pasoActivo = parseInt(dot.dataset.step,10); renderAll(); });
+  });
+}
+
+function renderStepContent(){
+  const cont = document.getElementById('step-content');
+  const paso = PASOS[pasoActivo];
+  let html = '';
+  if (paso==='problema') html = renderProblema(temaActivo);
+  else if (paso==='datos') html = renderDatos(temaActivo);
+  else if (paso==='bateria') html = renderBateria(temaActivo);
+  else if (paso==='ganador') html = renderGanador(temaActivo);
+  else if (paso==='dominio') html = renderDominio(temaActivo);
+  else if (paso==='conclusion') html = renderConclusion(temaActivo);
+  cont.innerHTML = html;
+
+  if (paso==='dominio'){
+    if (temaActivo==='E3'){
+      document.getElementById('e3-periodos').addEventListener('change', recalcularE3);
+      document.getElementById('e3-tasa').addEventListener('input', recalcularE3);
+      recalcularE3();
+    }
+    if (temaActivo==='E4'){
+      ['e4-costo-pedido','e4-costo-mant','e4-lead','e4-servicio'].forEach(id=>{
+        document.getElementById(id).addEventListener('input', recalcularE4);
+      });
+      recalcularE4();
+    }
+  }
+}
+
+function renderNav(){
+  document.getElementById('btnPrev').disabled = pasoActivo===0;
+  document.getElementById('btnNext').disabled = pasoActivo===PASOS.length-1;
+  document.getElementById('btnNext').textContent = pasoActivo===PASOS.length-1 ? 'Fin ✓' : 'Siguiente →';
+  document.getElementById('stepLabel').textContent = `Paso ${pasoActivo+1} de ${PASOS.length} — ${PASO_TITULOS[pasoActivo]}`;
+}
+
+function renderAll(){
+  renderStepper();
+  renderStepContent();
+  renderNav();
+}
+
+document.getElementById('btnPrev').addEventListener('click', ()=>{
+  if (pasoActivo>0){ pasoActivo--; renderAll(); }
+});
+document.getElementById('btnNext').addEventListener('click', ()=>{
+  if (pasoActivo<PASOS.length-1){ pasoActivo++; renderAll(); }
+});
+
+document.getElementById('temaSelector').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.tema-btn');
+  if (!btn) return;
+  temaActivo = btn.dataset.tema;
+  pasoActivo = 0;
+  document.querySelectorAll('.tema-btn').forEach(b=>b.classList.toggle('active', b===btn));
+  renderAll();
+});
+
+/* ============================================================
+   NAVEGACIÓN ENTRE LAS 5 SECCIONES PRINCIPALES
+   ============================================================ */
+document.getElementById('mainNav').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const num = btn.dataset.page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+num).classList.add('active');
+  document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('active', b===btn));
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+/* ---------- inicio ---------- */
+renderAll();
+</script>
+</body>
+</html>
